@@ -245,12 +245,20 @@ contract TaikoAnchor is EssentialContract, IBlockHashProvider, TaikoAnchorDeprec
         returns (uint256 basefee_, uint64 newGasTarget_, uint64 newGasExcess_)
     {
         // uint32 * uint8 will never overflow
+        //
+        // NOTE(thedevbirb): why do we multiply by adjustmentQuotient? For
+        // MainnetInbox, this is set to 8.
         uint64 newGasTarget =
             uint64(_baseFeeConfig.gasIssuancePerSecond) * _baseFeeConfig.adjustmentQuotient;
 
+        // NOTE(thedevbirb): in practice, the gas target is always the quantity above and
+        // the logic here is unoptimized, because `newGasTarget` is always greater than zero,
+        // and upon config checks it will never by higher than `2**256 / 10**18`.
         (newGasTarget_, newGasExcess_) =
             LibEIP1559.adjustExcess(parentGasTarget, newGasTarget, parentGasExcess);
 
+        // NOTE(thedevbirb): makes sense that the gas for the block takes into account the distance with the parent.
+        // But what happens during re-timestamping where this is always zero?
         uint64 gasIssuance =
             (_blockTimestamp - parentTimestamp) * _baseFeeConfig.gasIssuancePerSecond;
 

@@ -77,6 +77,9 @@ library LibEIP1559 {
             return (_oldGasTarget, _oldGasExcess);
         }
 
+        // NOTE(thedevbirb): calculate the ratio scaled by WAD (Wei Adjusted
+        // Decimal, 10**18). In practice `_newGasTarget == _oldGasExcess` so
+        // this is always be equal to `f * 1`, see notes on `getBasefeeV2`.
         uint256 ratio = f * _newGasTarget / _oldGasTarget;
         if (ratio == 0 || ratio > uint256(type(int256).max)) {
             return (_newGasTarget, _oldGasExcess);
@@ -86,7 +89,7 @@ library LibEIP1559 {
         uint256 newGasExcess;
 
         assembly {
-            // compute x = (_newGasTarget * lnRatio + _gasExcess * ratio)
+            // compute x = (_newGasTarget * lnRatio + _oldGasExcess * ratio)
             let x := add(mul(_newGasTarget, lnRatio), mul(_oldGasExcess, ratio))
 
             // If x < 0, set newGasExcess to 0, otherwise calculate newGasExcess = x / f
